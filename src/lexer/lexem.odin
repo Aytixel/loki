@@ -16,6 +16,7 @@ Lexem :: struct {
 @(private)
 lexem_from :: proc {
 	lexem_from_rune,
+	lexem_from_runes,
 	lexem_from_string,
 }
 
@@ -60,6 +61,18 @@ lexem_from_rune :: proc(lexer: ^Lexer, ch: rune, atom: LexemAtom) -> Lexem {
 		end = lexer.position + utf8.rune_size(ch),
 		rune_end = lexer.rune_position + 1,
 	}
+}
+
+@(private)
+lexem_from_runes :: proc(lexer: ^Lexer, runes: []rune, atom: LexemAtom) -> Lexem {
+	lexem := lexem_from_rune(lexer, runes[0], atom)
+
+	for ch in runes[1:] {
+		lexem.end += utf8.rune_size(ch)
+		lexem.rune_end += 1
+	}
+
+	return lexem
 }
 
 @(private)

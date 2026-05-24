@@ -177,7 +177,7 @@ lex_keyword :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool, er
 @(private)
 lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool, err: io.Error) {
 	lexem: Lexem
-	runes: [dynamic; 3]rune
+	runes: [dynamic; 4]rune = {ch}
 
 	switch (ch) {
 	case '(':
@@ -201,128 +201,224 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 	case '.':
 		lexem = lexem_from(lexer, ch, Punctuator.Dot)
 	case '+':
-		lexem = lexem_from(lexer, ch, Punctuator.Plus)
+		append_read_rune(&runes, reader) or_return
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.PlusAssignment,
+			Punctuator.Plus,
+		)
 	case '-':
-		lexem = lexem_from(lexer, ch, Punctuator.Minus)
+		append_read_rune(&runes, reader) or_return
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.MinusAssignment,
+			Punctuator.Minus,
+		)
 	case '*':
-		lexem = lexem_from(lexer, ch, Punctuator.Multiply)
+		append_read_rune(&runes, reader) or_return
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.MultiplyAssignment,
+			Punctuator.Multiply,
+		)
 	case '/':
-		lexem = lexem_from(lexer, ch, Punctuator.Division)
+		append_read_rune(&runes, reader) or_return
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.DivisionAssignment,
+			Punctuator.Division,
+		)
 	case '%':
-		lexem = lexem_from(lexer, ch, Punctuator.Remainder)
+		append_read_rune(&runes, reader) or_return
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.RemainderAssignment,
+			Punctuator.Remainder,
+		)
 	case '?':
 		append_read_rune(&runes, reader) or_return
 
-		if runes[0] == '.' {
-			lexem = lexem_from(lexer, ch, Punctuator.OptionalChaining)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.QuestionMark)
-			backtrack(reader, pop(&runes))
+		if runes[1] == '?' {
+			append_read_rune(&runes, reader) or_return
+			lexem = choose_punctuator(
+				lexer,
+				reader,
+				&runes,
+				2,
+				'=',
+				Punctuator.NullishCoalescingAssignment,
+				Punctuator.NullishCoalescing,
+			)
+			break
 		}
+
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'.',
+			Punctuator.OptionalChaining,
+			Punctuator.QuestionMark,
+		)
 	case '=':
 		append_read_rune(&runes, reader) or_return
 
-		if runes[0] == '=' {
+		if runes[1] == '=' {
 			append_read_rune(&runes, reader) or_return
-
-			if runes[1] == '=' {
-				lexem = lexem_from(lexer, ch, Punctuator.StrictlyEqual)
-			} else {
-				lexem = lexem_from(lexer, ch, Punctuator.Equal)
-				backtrack(reader, pop(&runes))
-			}
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.Assignment)
-			backtrack(reader, pop(&runes))
+			lexem = choose_punctuator(
+				lexer,
+				reader,
+				&runes,
+				2,
+				'=',
+				Punctuator.StrictlyEqual,
+				Punctuator.Equal,
+			)
+			break
 		}
+
+		lexem = lexem_from(lexer, runes[:], Punctuator.Assignment)
+		backtrack(reader, pop(&runes))
 	case '!':
 		append_read_rune(&runes, reader) or_return
 
-		if runes[0] == '=' {
+		if runes[1] == '=' {
 			append_read_rune(&runes, reader) or_return
-
-			if runes[1] == '=' {
-				lexem = lexem_from(lexer, ch, Punctuator.StrictlyNotEqual)
-			} else {
-				lexem = lexem_from(lexer, ch, Punctuator.NotEqual)
-				backtrack(reader, pop(&runes))
-			}
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.LogicalNot)
-			backtrack(reader, pop(&runes))
+			lexem = choose_punctuator(
+				lexer,
+				reader,
+				&runes,
+				2,
+				'=',
+				Punctuator.StrictlyNotEqual,
+				Punctuator.NotEqual,
+			)
+			break
 		}
+
+		lexem = lexem_from(lexer, ch, Punctuator.LogicalNot)
+		backtrack(reader, pop(&runes))
 	case '<':
 		append_read_rune(&runes, reader) or_return
 
-		if runes[0] == '<' {
+		if runes[1] == '<' {
 			append_read_rune(&runes, reader) or_return
-
-			if runes[1] == '=' {
-				lexem = lexem_from(lexer, ch, Punctuator.LeftShiftAssignment)
-			} else {
-				lexem = lexem_from(lexer, ch, Punctuator.LeftShift)
-				backtrack(reader, pop(&runes))
-			}
-		} else if runes[0] == '=' {
-			lexem = lexem_from(lexer, ch, Punctuator.LowerOrEqual)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.Lower)
-			backtrack(reader, pop(&runes))
+			lexem = choose_punctuator(
+				lexer,
+				reader,
+				&runes,
+				2,
+				'=',
+				Punctuator.LeftShiftAssignment,
+				Punctuator.LeftShift,
+			)
+			break
 		}
+
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.LowerOrEqual,
+			Punctuator.Lower,
+		)
 	case '>':
 		append_read_rune(&runes, reader) or_return
 
-		if runes[0] == '>' {
+		if runes[1] == '>' {
 			append_read_rune(&runes, reader) or_return
 
-			if runes[1] == '>' {
+			if runes[2] == '>' {
 				append_read_rune(&runes, reader) or_return
-
-				if runes[2] == '=' {
-					lexem = lexem_from(lexer, ch, Punctuator.UnsignedRightShiftAssignment)
-				} else {
-					lexem = lexem_from(lexer, ch, Punctuator.UnsignedRightShift)
-					backtrack(reader, pop(&runes))
-				}
-			} else if runes[1] == '=' {
-				lexem = lexem_from(lexer, ch, Punctuator.RightShiftAssignment)
-			} else {
-				lexem = lexem_from(lexer, ch, Punctuator.RightShift)
-				backtrack(reader, pop(&runes))
+				lexem = choose_punctuator(
+					lexer,
+					reader,
+					&runes,
+					3,
+					'=',
+					Punctuator.UnsignedRightShiftAssignment,
+					Punctuator.UnsignedRightShift,
+				)
+				break
 			}
-		} else if runes[0] == '=' {
-			lexem = lexem_from(lexer, ch, Punctuator.GreaterOrEqual)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.Greater)
-			backtrack(reader, pop(&runes))
+
+			lexem = choose_punctuator(
+				lexer,
+				reader,
+				&runes,
+				2,
+				'=',
+				Punctuator.RightShiftAssignment,
+				Punctuator.RightShift,
+			)
+			break
 		}
+
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.GreaterOrEqual,
+			Punctuator.Greater,
+		)
 	case '^':
 		append_read_rune(&runes, reader) or_return
-
-		if runes[0] == '=' {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseXorAssignment)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseXor)
-			backtrack(reader, pop(&runes))
-		}
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.BitwiseXorAssignment,
+			Punctuator.BitwiseXor,
+		)
 	case '|':
 		append_read_rune(&runes, reader) or_return
-
-		if runes[0] == '=' {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseOrAssignment)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseOr)
-			backtrack(reader, pop(&runes))
-		}
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.BitwiseOrAssignment,
+			Punctuator.BitwiseOr,
+		)
 	case '&':
 		append_read_rune(&runes, reader) or_return
-
-		if runes[0] == '=' {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseAndAssignment)
-		} else {
-			lexem = lexem_from(lexer, ch, Punctuator.BitwiseAnd)
-			backtrack(reader, pop(&runes))
-		}
+		lexem = choose_punctuator(
+			lexer,
+			reader,
+			&runes,
+			1,
+			'=',
+			Punctuator.BitwiseAndAssignment,
+			Punctuator.BitwiseAnd,
+		)
 	case '~':
 		lexem = lexem_from(lexer, ch, Punctuator.BitwiseNot)
 	case:
@@ -330,9 +426,30 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 	}
 
 	non_zero_append(&lexer.lexems, lexem)
-	move_position(lexer, runes[:])
+	move_position(lexer, runes[1:])
 
 	return true, io.Error.None
+}
+
+@(private)
+choose_punctuator :: proc(
+	lexer: ^Lexer,
+	reader: io.Reader,
+	runes: ^[dynamic; $N]rune,
+	check_index: u8,
+	check_ch: rune,
+	choosed_punctuator: Punctuator,
+	other_punctuator: Punctuator,
+) -> (
+	lexem: Lexem,
+) {
+	if runes[check_index] == check_ch {
+		lexem = lexem_from(lexer, runes[:], choosed_punctuator)
+	} else {
+		backtrack(reader, pop(runes))
+		lexem = lexem_from(lexer, runes[:], other_punctuator)
+	}
+	return
 }
 
 @(private)
