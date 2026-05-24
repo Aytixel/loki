@@ -12,6 +12,7 @@ Move :: enum {
 
 move_position :: proc {
 	move_position_rune,
+	move_position_runes,
 	move_position_string,
 }
 
@@ -26,12 +27,16 @@ move_position_rune :: proc(lexer: ^Lexer, ch: rune, move: Move = Move.Forward) {
 	lexer.rune_position += sign
 }
 
-move_position_string :: proc(lexer: ^Lexer, s: string, move: Move = Move.Forward) {
-	sign := move == Move.Forward ? 1 : -1
+move_position_runes :: proc(lexer: ^Lexer, runes: []rune, move: Move = Move.Forward) {
+	for ch in runes {
+		move_position_rune(lexer, ch, move)
+	}
+}
 
-	lexer.line += strings.count(s, "\n") * sign
-	lexer.position += len(s) * sign
-	lexer.rune_position += utf8.rune_count(s) * sign
+move_position_string :: proc(lexer: ^Lexer, s: string, move: Move = Move.Forward) {
+	for ch in s {
+		move_position_rune(lexer, ch, move)
+	}
 }
 
 backtrack :: proc {

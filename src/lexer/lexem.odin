@@ -19,7 +19,6 @@ lexem_from :: proc {
 	lexem_from_string,
 }
 
-
 @(private)
 lexem_destroy :: proc(lexem: Lexem) {
 	switch atom in lexem.atom {
