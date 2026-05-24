@@ -210,7 +210,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.PlusAssignment,
 			Punctuator.Plus,
-		)
+		) or_return
 	case '-':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -221,7 +221,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.MinusAssignment,
 			Punctuator.Minus,
-		)
+		) or_return
 	case '*':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -232,7 +232,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.MultiplyAssignment,
 			Punctuator.Multiply,
-		)
+		) or_return
 	case '/':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -243,7 +243,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.DivisionAssignment,
 			Punctuator.Division,
-		)
+		) or_return
 	case '%':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -254,7 +254,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.RemainderAssignment,
 			Punctuator.Remainder,
-		)
+		) or_return
 	case '?':
 		append_read_rune(&runes, reader) or_return
 
@@ -268,7 +268,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 				'=',
 				Punctuator.NullishCoalescingAssignment,
 				Punctuator.NullishCoalescing,
-			)
+			) or_return
 			break
 		}
 
@@ -280,7 +280,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'.',
 			Punctuator.OptionalChaining,
 			Punctuator.QuestionMark,
-		)
+		) or_return
 	case '=':
 		append_read_rune(&runes, reader) or_return
 
@@ -294,7 +294,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 				'=',
 				Punctuator.StrictlyEqual,
 				Punctuator.Equal,
-			)
+			) or_return
 			break
 		}
 
@@ -313,7 +313,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 				'=',
 				Punctuator.StrictlyNotEqual,
 				Punctuator.NotEqual,
-			)
+			) or_return
 			break
 		}
 
@@ -332,7 +332,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 				'=',
 				Punctuator.LeftShiftAssignment,
 				Punctuator.LeftShift,
-			)
+			) or_return
 			break
 		}
 
@@ -344,7 +344,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.LowerOrEqual,
 			Punctuator.Lower,
-		)
+		) or_return
 	case '>':
 		append_read_rune(&runes, reader) or_return
 
@@ -361,7 +361,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 					'=',
 					Punctuator.UnsignedRightShiftAssignment,
 					Punctuator.UnsignedRightShift,
-				)
+				) or_return
 				break
 			}
 
@@ -373,7 +373,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 				'=',
 				Punctuator.RightShiftAssignment,
 				Punctuator.RightShift,
-			)
+			) or_return
 			break
 		}
 
@@ -385,7 +385,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.GreaterOrEqual,
 			Punctuator.Greater,
-		)
+		) or_return
 	case '^':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -396,7 +396,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.BitwiseXorAssignment,
 			Punctuator.BitwiseXor,
-		)
+		) or_return
 	case '|':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -407,7 +407,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.BitwiseOrAssignment,
 			Punctuator.BitwiseOr,
-		)
+		) or_return
 	case '&':
 		append_read_rune(&runes, reader) or_return
 		lexem = choose_punctuator(
@@ -418,7 +418,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 			'=',
 			Punctuator.BitwiseAndAssignment,
 			Punctuator.BitwiseAnd,
-		)
+		) or_return
 	case '~':
 		lexem = lexem_from(lexer, ch, Punctuator.BitwiseNot)
 	case:
@@ -442,11 +442,12 @@ choose_punctuator :: proc(
 	other_punctuator: Punctuator,
 ) -> (
 	lexem: Lexem,
+	err: io.Error,
 ) {
 	if runes[check_index] == check_ch {
 		lexem = lexem_from(lexer, runes[:], choosed_punctuator)
 	} else {
-		backtrack(reader, pop(runes))
+		backtrack(reader, pop(runes)) or_return
 		lexem = lexem_from(lexer, runes[:], other_punctuator)
 	}
 	return
