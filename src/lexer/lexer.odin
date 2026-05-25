@@ -1,5 +1,6 @@
 package lexer
 
+import "base:intrinsics"
 import "core:io"
 import "core:slice"
 import "core:unicode/utf8"
@@ -81,7 +82,7 @@ lex_line_terminator :: proc(
 
 	s := utf8.runes_to_string(runes)
 
-	non_zero_append(&lexer.lexems, lexem_from(lexer, s, LineTerminator(s)))
+	non_zero_append(&lexer.lexems, lexem_from(lexer, runes, LineTerminator(s)))
 
 	if len(runes) == 2 {
 		move_position(lexer, runes[1])
@@ -158,12 +159,12 @@ lex_hashbang_comments :: proc(
 
 	s := utf8.runes_to_string(runes[:])
 
-	lexem := lexem_from(lexer, s, HashbangComments(s))
+	lexem := lexem_from(lexer, runes[:], HashbangComments(s))
 	lexem.end += 2
 	lexem.rune_end += 2
 	non_zero_append(&lexer.lexems, lexem)
 
-	move_position(lexer, s)
+	move_position(lexer, runes[:])
 	move_position(lexer, mark_ch)
 
 	return true, io.Error.None
@@ -199,8 +200,7 @@ lex_punctuator :: proc(lexer: ^Lexer, reader: io.Reader, ch: rune) -> (ok: bool,
 	case ',':
 		lexem = lexem_from(lexer, ch, Punctuator.Comma)
 	case '.':
-		append_read_rune(&runes, reader) or_return
-		append_read_rune(&runes, reader) or_return
+		append_read_rune(&runes, reader, 2) or_return
 
 		if runes[1] == '.' && runes[2] == '.' {
 			lexem = lexem_from(lexer, runes[:], Punctuator.Spread)
@@ -529,8 +529,15 @@ choose_punctuator :: proc(
 }
 
 @(private)
-append_read_rune :: proc(runes: ^[dynamic; $N]rune, reader: io.Reader) -> (err: io.Error) {
-	ch := read_rune(reader) or_return
-	append(runes, ch)
+append_read_rune :: proc(
+	runes: ^[dynamic; $N]rune,
+	reader: io.Reader,
+	count := 1,
+) -> (
+	err: io.Error,
+) {
+	for _ in 0 ..< count {
+		append(runes, read_rune(reader) or_return)
+	}
 	return
 }

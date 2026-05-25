@@ -17,7 +17,6 @@ Lexem :: struct {
 lexem_from :: proc {
 	lexem_from_rune,
 	lexem_from_runes,
-	lexem_from_string,
 }
 
 @(private)
@@ -73,18 +72,6 @@ lexem_from_runes :: proc(lexer: ^Lexer, runes: []rune, atom: LexemAtom) -> Lexem
 	}
 
 	return lexem
-}
-
-@(private)
-lexem_from_string :: proc(lexer: ^Lexer, s: string, atom: LexemAtom) -> Lexem {
-	return Lexem {
-		atom = atom,
-		line = lexer.line,
-		start = lexer.position,
-		rune_start = lexer.rune_position,
-		end = lexer.position + len(s),
-		rune_end = lexer.rune_position + utf8.rune_count(s),
-	}
 }
 
 LexemAtom :: union #no_nil {
